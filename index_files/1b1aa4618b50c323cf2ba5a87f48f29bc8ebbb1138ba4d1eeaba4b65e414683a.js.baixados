@@ -1,0 +1,4 @@
+var Roblox = Roblox || {};
+Roblox.LangDynamic = Roblox.LangDynamic || {};
+Roblox.LangDynamic["Feature.Denied"] = {"Denied.Header":"Ação Restrita","Denied.Body":"Para a segurança da sua conta, não conseguimos concluir o seu pedido neste momento. Tente novamente em um dispositivo usado anteriormente ou entre em contato com o suporte para obter ajuda.","Denied.Action":"OK","Denied.AutomatedTampering.Body":"Detectamos atividades automatizadas suspeitas em sua conta e não podemos concluir sua solicitação neste momento. Por favor, desative todas as extensões da web e aguarde pelo menos alguns minutos antes de tentar novamente. Para obter instruções, consulte \"Desabilitar complementos do seu navegador da web\" na seção do {linkStart}artigo de ajuda{linkEnd}."};
+window.Roblox && window.Roblox.BundleDetector && window.Roblox.BundleDetector.bundleDetected("DynamicLocalizationResourceScript_Feature.Denied");
